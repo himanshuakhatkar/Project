@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Enterprise | Intelligent Anti-Proxy Attendance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #090d16;
+            --bg-panel: #111827;
+            --bg-card: #1f2937;
+            --primary: #2563eb;
+            --primary-glow: rgba(37, 99, 235, 0.4);
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --whatsapp: #25D366;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border: #374151;
+            --radius-lg: 16px;
+            --radius-sm: 8px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-base); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Sidebar Navigation */
+        .sidebar { width: 280px; background: var(--bg-panel); border-right: 1px solid var(--border); padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .logo { font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 2.5rem; padding-left: 0.5rem; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
+        .logo-dot { width: 10px; height: 10px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 12px var(--primary); }
+        .nav-btn { background: transparent; color: var(--text-muted); border: none; padding: 0.85rem 1rem; text-align: left; font-size: 0.95rem; cursor: pointer; border-radius: var(--radius-sm); font-weight: 500; transition: var(--transition); display: flex; align-items: center; gap: 10px; }
+        .nav-btn:hover { background: rgba(255,255,255,0.03); color: var(--text-main); }
+        .nav-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 14px var(--primary-glow); }
+
+        /* Main Content Area */
+        .main-content { flex: 1; padding: 2.5rem; overflow-y: auto; background: radial-gradient(circle at top right, #1e1b4b15, transparent 50%); }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.3s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.2rem; }
+        .page-header h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.5px; }
+
+        /* --- 2-COLUMN GRID LAYOUT --- */
+        .scanner-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 1100px; margin: 0 auto; }
+        
+        .panel { background: var(--bg-panel); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 2rem; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .panel-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+        /* QR Generator Panel */
+        .input-group { margin-bottom: 1.5rem; }
+        .input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-weight: 500; }
+        select { width: 100%; padding: 0.85rem 1rem; border-radius: var(--radius-sm); background: var(--bg-base); color: white; border: 1px solid var(--border); font-size: 0.95rem; cursor: pointer; transition: var(--transition); }
+        select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+        
+        .qr-card { background: white; padding: 1.5rem; border-radius: var(--radius-lg); text-align: center; position: relative; margin-top: auto; margin-bottom: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .real-qr-code { width: 220px; height: 220px; margin: 0 auto; display: block; border: 3px solid #e5e7eb; border-radius: 12px; padding: 8px; background: white; transition: var(--transition); }
+        .qr-owner-badge { color: #111827; font-weight: 600; margin-top: 12px; font-size: 0.95rem; background: #f3f4f6; padding: 6px 12px; border-radius: 20px; display: inline-block; }
+
+        /* Simulators Box */
+        .sim-box { margin-top: 1.5rem; background: var(--bg-card); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        .sim-box p { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sim-actions { display: flex; gap: 10px; }
+        .btn-sim { flex: 1; padding: 0.7rem; border-radius: var(--radius-sm); border: none; font-weight: 600; cursor: pointer; color: white; font-size: 0.85rem; transition: var(--transition); }
+        .btn-sim-success { background: var(--success); }
+        .btn-sim-success:hover { background: #047857; }
+        .btn-sim-danger { background: var(--danger); }
+        .btn-sim-danger:hover { background: #b91c1c; }
+
+        /* Result Panel */
+        .profile-card { background: var(--bg-base); border-radius: var(--radius-lg); padding: 2rem; border: 1px solid var(--border); display: none; flex-direction: column; align-items: center; text-align: center; }
+        .profile-card.visible { display: flex; animation: fadeIn 0.3s ease; }
+        .avatar { width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), #1d4ed8); border-radius: 50%; margin-bottom: 1rem; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white; box-shadow: 0 0 20px var(--primary-glow); font-weight: bold; }
+        
+        .status-badge { padding: 4px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-bottom: 1.5rem; letter-spacing: 0.5px; }
+        .status-badge.granted { background: rgba(5, 150, 105, 0.15); color: #34d399; border: 1px solid rgba(5, 150, 105, 0.3); }
+        .status-badge.flagged { background: rgba(220, 38, 38, 0.15); color: #f87171; border: 1px solid rgba(220, 38, 38, 0.3); }
+
+        .profile-stats-list { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+        .profile-stat { display: flex; justify-content: space-between; width: 100%; padding: 0.75rem 1rem; background: var(--bg-card); border-radius: var(--radius-sm); font-size: 0.9rem; border: 1px solid rgba(255,255,255,0.03); }
+        .profile-stat span:first-child { color: var(--text-muted); }
+
+        .awaiting-state { text-align: center; color: var(--text-muted); padding-top: 6rem; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .awaiting-icon { font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.6; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+        /* --- DASHBOARD STATS & TABLE --- */
+        .stats-overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: var(--bg-panel); border: 1px solid var(--border); padding: 1.5rem; border-radius: var(--radius-lg); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .stat-card h4 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; font-weight: 600; }
+        .stat-card .number { font-size: 2rem; font-weight: 700; }
+
+        .table-container { background: var(--bg-panel); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 1.15rem 1.5rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        th { background: rgba(0,0,0,0.2); font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; }
+        tr:hover { background: rgba(255,255,255,0.01); }
+        
+        .badge { padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-present { background: rgba(5, 150, 105, 0.15); color: #34d399; }
+        .badge-absent { background: rgba(156, 163, 175, 0.1); color: var(--text-muted); }
+        .badge-proxy { background: rgba(220, 38, 38, 0.15); color: #f87171; }
+
+        /* Floating WhatsApp Notification Drawer */
+        .whatsapp-floater {
+            position: fixed; bottom: 30px; right: 30px; z-index: 1000;
+            background: var(--whatsapp); color: white; width: 56px; height: 56px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 26px; box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4); cursor: pointer;
+            transition: var(--transition);
+        }
+        .whatsapp-floater:hover { transform: scale(1.08); box-shadow: 0 8px 25px rgba(37, 211, 102, 0.6); }
+        .whatsapp-badge {
+            position: absolute; top: -4px; right: -4px; background: var(--danger);
+            color: white; font-size: 0.7rem; width: 20px; height: 20px; border-radius: 50%;
+            display: none; align-items: center; justify-content: center; font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .whatsapp-badge.active { display: flex; animation: pulseBadge 0.6s infinite alternate; }
+        @keyframes pulseBadge { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+        .whatsapp-popup {
+            position: fixed; bottom: 100px; right: 30px; width: 340px; background: #111b21;
+            color: #e9edef; border-radius: var(--radius-lg); border: 1px solid #222d34; box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            z-index: 1001; display: none; flex-direction: column; overflow: hidden; animation: fadeIn 0.25s ease;
+        }
+        .wa-header { background: #202c33; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; font-weight: 600; color: var(--whatsapp); border-bottom: 1px solid #222d34; }
+        .wa-body { padding: 16px; font-size: 0.85rem; line-height: 1.5; background: #0b141a; }
+        .wa-close { background: none; border: none; color: #8696a0; cursor: pointer; font-size: 1.1rem; }
+
+        /* Toast Alert Banner */
+        .toast-banner { position: fixed; top: 24px; right: 24px; background: var(--danger); color: white; padding: 1rem 1.5rem; border-radius: var(--radius-sm); font-weight: 600; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4); transform: translateY(-120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1100; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; border-left: 4px solid white; }
+        .toast-banner.show { transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastBanner" class="toast-banner">
+        <span>🚨</span> <span id="toastText">Proxy Detected!</span>
+    </div>
+
+    <!-- Floating WhatsApp Widget -->
+    <div class="whatsapp-floater" onclick="toggleWaPopup()" title="WhatsApp Enterprise Bot">
+        💬
+        <div class="whatsapp-badge" id="waBadge">1</div>
+    </div>
+
+    <!-- WhatsApp Drawer -->
+    <div class="whatsapp-popup" id="waPopup">
+        <div class="wa-header">
+            <span>🟢 WhatsApp Security Dispatch</span>
+            <button class="wa-close" onclick="toggleWaPopup()">✕</button>
+        </div>
+        <div class="wa-body" id="waMessageText" style="color: #d1d7db;">
+            System monitoring active. Instant notification dispatch ready.
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="logo"><div class="logo-dot"></div> Aura Enterprise</div>
+        <button class="nav-btn active" onclick="switchTab('scanner', this)">🖥️ Live Smart Portal</button>
+        <button class="nav-btn" onclick="switchTab('dashboard', this)">📊 Analytics & Logs</button>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-content">
+        
+        <!-- Smart Board View -->
+        <div id="scanner" class="view-section active">
+            <div class="page-header">
+                <h2>Classroom Check-In & Verification Hub</h2>
+            </div>
+            
+            <div class="scanner-layout">
+                
+                <!-- Panel 1: QR Projection -->
+                <div class="panel">
+                    <div class="panel-title">🖥️ Smart Board Projection</div>
+                    
+                    <div class="input-group">
+                        <label>Active Session Student</label>
+                        <select id="systemQRSelect" onchange="updateQRDisplay()">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="qr-card">
+                        <img id="realQRCode" class="real-qr-code" src="" alt="Live Session QR Code">
+                        <div id="qrOwnerName" class="qr-owner-badge">...</div>
+                    </div>
+
+                    <div class="sim-box">
+                        <p>Hardware Simulation Control</p>
+                        <div class="sim-actions">
+                            <button class="btn-sim btn-sim-success" onclick="simulateScan(true)">Valid Check-In</button>
+                            <button class="btn-sim btn-sim-danger" onclick="simulateScan(false)">Simulate Proxy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel 2: Live Verification Result -->
+                <div class="panel">
+                    <div class="panel-title">📋 Real-Time Verification Result</div>
+                    
+                    <div class="profile-card" id="profileCard">
+                        <div class="avatar" id="prof-avatar">A</div>
+                        <h3 id="prof-name" style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Name</h3>
+                        <div id="profileStatusBadge" class="status-badge granted">Access Granted</div>
+                        
+                        <div class="profile-stats-list">
+                            <div class="profile-stat">
+                                <span>Roll Number</span>
+                                <span id="prof-id" style="font-weight: 600;">ID</span>
+                            </div>
+                            <div class="profile-stat">
+                                <span>Department</span>
+                                <span id="prof-dept" style="font-weight: 600;">CS</span>
+                            </div>
+                            <div class="profile-stat">
+                                <span>Timestamp</span>
+                                <span id="prof-time" style="font-weight: 600;">--:--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="awaitingState" class="awaiting-state">
+                        <div class="awaiting-icon">📱</div>
+                        <h3 style="color: white; font-weight: 500; margin-bottom: 0.4rem;">Listening for Scan Stream...</h3>
+                        <p style="font-size: 0.85rem; max-width: 240px;">Select a student session or trigger a scan simulation to verify telemetry.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboard" class="view-section">
+            <div class="page-header">
+                <h2>Attendance & Security Audit Log</h2>
+            </div>
+            
+            <div class="stats-overview">
+                <div class="stat-card">
+                    <h4>Total Enrolled</h4>
+                    <div class="number" id="stat-total">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Verified Present</h4>
+                    <div class="number" style="color: #34d399;" id="stat-present">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Proxy Anomalies</h4>
+                    <div class="number" style="color: #f87171;" id="stat-alerts">0</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="attendanceTable">
+                    <thead>
+                        <tr>
+                            <th>Roll Number</th>
+                            <th>Student Name</th>
+                            <th>Time Logged</th>
+                            <th>Status</th>
+                            <th>System Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dynamically populated rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATASET ---
+        const students = [
+            { id: 'CS-2024-01', name: 'Aarav Sharma', dept: 'Computer Science', initial: 'A', status: 'Absent', time: '-', remark: 'Pending Verification' },
+            { id: 'CS-2024-02', name: 'Priya Patel', dept: 'Computer Science', initial: 'P', status: 'Absent', time: '-', remark: 'Pending Verification' },
+            { id: 'ME-2024-15', name: 'Rohan Desai', dept: 'Mechanical Eng', initial: 'R', status: 'Absent', time: '-', remark: 'Pending Verification' },
+            { id: 'EE-2024-08', name: 'Ananya Singh', dept: 'Electrical Eng', initial: 'A', status: 'Absent', time: '-', remark: 'Pending Verification' },
+            { id: 'IT-2024-22', name: 'Karan Malhotra', dept: 'Information Tech', initial: 'K', status: 'Absent', time: '-', remark: 'Pending Verification' }
+        ];
+
+        function init() {
+            const qrSel = document.getElementById('systemQRSelect');
+            students.forEach((s, index) => {
+                qrSel.innerHTML += `<option value="${index}">${s.name} (${s.id})</option>`;
+            });
+            updateQRDisplay();
+            updateDashboard();
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function toggleWaPopup() {
+            const popup = document.getElementById('waPopup');
+            const badge = document.getElementById('waBadge');
+            if (popup.style.display === 'flex') {
+                popup.style.display = 'none';
+            } else {
+                popup.style.display = 'flex';
+                badge.classList.remove('active');
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toastBanner');
+            document.getElementById('toastText').innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        function updateQRDisplay() {
+            const index = document.getElementById('systemQRSelect').value;
+            const student = students[index];
+            document.getElementById('qrOwnerNameമായി' in window ? '' : 'qrOwnerName').innerText = `${student.name}'s Unique Session Token`;
+
+            const qrImage = document.getElementById('realQRCode');
+            qrImage.style.opacity = '0.3';
+
+            const payload = `Aura-Enterprise: ID=${student.id}, Name=${student.name}`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(payload)}&color=111827&bgcolor=ffffff`;
+            
+            qrImage.src = qrUrl;
+            qrImage.onload = () => { qrImage.style.opacity = '1'; };
+        }
+
+        function simulateScan(isValid) {
+            const index = document.getElementById('systemQRSelect').value;
+            const student = students[index];
+            const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            
+            const profileCard = document.getElementById('profileCard');
+            const awaitingState = document.getElementById('awaitingState');
+            const statusBadge = document.getElementById('profileStatusBadge');
+            const waBadge = document.getElementById('waBadge');
+            const waMessageText = document.getElementById('waMessageText');
+
+            if (!isValid) {
+                // PROXY DETECTED
+                student.status = 'Proxy Flagged';
+                student.time = now;
+                student.remark = 'Hardware ID Mismatch (Proxy Prevented)';
+
+                awaitingState.style.display = 'none';
+                document.getElementById('prof-avatar').innerText = student.initial;
+                document.getElementById('prof-name').innerText = student.name;
+                statusBadge.innerText = 'Proxy Flagged';
+                statusBadge.className = 'status-badge flagged';
+                document.getElementById('prof-id').innerText = student.id;
+                document.getElementById('prof-dept').innerText = student.dept;
+                document.getElementById('prof-time').innerText = now;
+                profileCard.classList.add('visible');
+
+                // Trigger Notifications
+                showToast(`🚨 PROXY ANOMALY: Hardware mismatch detected for ${student.name}!`);
+                waMessageText.innerHTML = `🚨 <b>SECURITY DISPATCH: PROXY BLOCKED</b><br><br>Hello <b>${student.name}</b>, an unauthorized device attempted to scan your secure classroom token at <i>${now}</i>. Access was automatically denied and logged.`;
+                waBadge.classList.add('active');
+
+            } else {
+                // VALID CHECK-IN
+                student.status = 'Present';
+                student.time = now;
+                student.remark = 'Verified: Token + Device Lock';
+
+                awaitingState.style.display = 'none';
+                document.getElementById('prof-avatar').innerText = student.initial;
+                document.getElementById('prof-name').innerText = student.name;
+                statusBadge.innerText = 'Access Granted';
+                statusBadge.className = 'status-badge granted';
+                document.getElementById('prof-id').innerText = student.id;
+                document.getElementById('prof-dept').innerText = student.dept;
+                document.getElementById('prof-time').innerText = now;
+                profileCard.classList.add('visible');
+
+                // Trigger Notifications
+                waMessageText.innerHTML = `✅ <b>ATTENDANCE CONFIRMED</b><br><br>Hello <b>${student.name}</b>, your presence has been successfully verified and cryptographically recorded at <i>${now}</i>.`;
+                waBadge.classList.add('active');
+            }
+
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            let presentCount = 0;
+            let alertCount = 0;
+            const tbody = document.querySelector('#attendanceTable tbody');
+            tbody.innerHTML = '';
+
+            students.forEach(s => {
+                if (s.status === 'Present') presentCount++;
+                if (s.status === 'Proxy Flagged') alertCount++;
+
+                let badgeClass = s.status === 'Present' ? 'badge-present' 
+                               : s.status === 'Absent' ? 'badge-absent' 
+                               : 'badge-proxy';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-weight: 600;">${s.id}</td>
+                        <td>${s.name}</td>
+                        <td>${s.time}</td>
+                        <td><span class="badge ${badgeClass}">${s.status}</span></td>
+                        <td style="color: var(--text-muted);">${s.remark}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('stat-total').innerText = students.length;
+            document.getElementById('stat-present').innerText = presentCount;
+            document.getElementById('stat-alerts').innerText = alertCount;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
